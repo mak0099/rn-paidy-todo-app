@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     StyleSheet,
     View,
@@ -6,35 +6,122 @@ import {
     Text,
     FlatList,
     TouchableOpacity,
-    ListRenderItem
+    ListRenderItem,
+    Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../constants/colors';
 
 type todoModel = {
-    id: number,
+    id: string,
     title: string
 }
-const todos: Array<todoModel> = [
-    { id: 1, title: 'First Item' },
-    { id: 2, title: 'Second Item' },
-    { id: 3, title: 'Third Item' },
-    { id: 4, title: 'Fourth Item' },
-]
 
-const HomeScreen = () => {
+const HomeScreen = () => {// Define states
+    const [todos, setTodos] = useState<todoModel[]>([]);
+    const [textInput, setTextInput] = useState('');
+    const [updateId, setUpdateId] = useState('');
+
+    // Initialize previous data from the storage at the beginning
+    useEffect(() => {
+        getTodosFromStorage();
+    }, []);
+
+    // Update storage data if any change in todo list
+    useEffect(() => {
+        saveTodoToStorage(todos);
+    }, [todos]);
+
+    // Save todo list to storage
+    async function saveTodoToStorage(todos: todoModel[]) {
+        try {
+            const stringifyTodos = JSON.stringify(todos);
+            await AsyncStorage.setItem('todos', stringifyTodos);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    // Get todo list from storage
+    async function getTodosFromStorage() {
+        try {
+            const todos = await AsyncStorage.getItem('todos');
+            if (todos != null) {
+                setTodos(JSON.parse(todos));
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    // Add new todo item
+    const addTodo = () => {
+        // Check if add todo with empty input
+        if (textInput == '') {
+            Alert.alert('Error', 'Please enter something');
+        } else {
+            // create new todo object
+            const newTodo = {
+                id: Math.random().toString(),
+                title: textInput,
+            };
+            // Add new todo in todo list state
+            setTodos([...todos, newTodo]);
+            setTextInput('');
+        }
+    };
+
+    // let the user edit an existing todo item
+    function editTodo(todo: todoModel) {
+        // Set update mode with id
+        setUpdateId(todo.id)
+        // Set selected todo title visible in input field to edit
+        setTextInput(todo.title)
+    }
+    function updateTodo() {
+        // Check if add todo with empty input
+        if (textInput == '') {
+            Alert.alert('Error', 'Please enter something');
+        } else {
+            // Find selected todo index from the list
+            const foundIndex = todos.findIndex(todo => todo.id == updateId)
+            if (foundIndex > -1) {
+                // Update todo title using found index
+                todos[foundIndex]['title'] = textInput
+            }
+            // Update list state
+            setTodos([...todos]);
+            // Clear text input
+            setTextInput('');
+            // Clear update mode
+            setUpdateId('')
+        }
+    };
+
+    // Remove todo item from the list
+    function deleteTodo(todoId: string) {
+        const newTodosItem = todos.filter(item => item.id != todoId);
+        setTodos(newTodosItem);
+        if (todoId === updateId) {
+            setUpdateId('');
+            setTextInput('');
+        }
+    };
+
     const ListItem: ListRenderItem<todoModel> = ({ item }) => {
         return (
-            <TouchableOpacity style={styles.listItem}>
+            <TouchableOpacity style={styles.listItem} onPress={() => editTodo(item)}>
                 <View style={styles.textWrapper}>
                     <View style={styles.circle}></View>
                     <Text style={styles.itemText}>{item.title}</Text>
                 </View>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => deleteTodo(item.id)}>
                     <Text style={styles.itemText}>REMOVE</Text>
                 </TouchableOpacity>
             </TouchableOpacity>
         );
     };
+
     return (
         <>
             <View style={styles.header}>
@@ -55,9 +142,11 @@ const HomeScreen = () => {
                     <TextInput
                         style={styles.input}
                         placeholder="Enter here"
+                        onChangeText={text => setTextInput(text)}
+                        value={textInput}
                     />
-                    <TouchableOpacity style={styles.button}>
-                        <Text style={styles.buttonText}>ADD</Text>
+                    <TouchableOpacity style={styles.button} onPress={updateId ? updateTodo : addTodo}>
+                        <Text style={styles.buttonText}>{updateId ? 'UPDATE' : 'ADD'}</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -123,7 +212,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        paddingHorizontal: 10,
+        paddingHorizontal: 10
     },
     button: {
         paddingHorizontal: 25,

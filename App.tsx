@@ -10,21 +10,17 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  StatusBar,
-  useColorScheme
+  StatusBar
 } from 'react-native';
 
-import { registerRootComponent } from 'expo';
 import { NavigationContainer } from '@react-navigation/native';
 import RootNavigation from './src/navigations/root-navigation';
 
 function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f3f3f3' }}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <StatusBar barStyle={'light-content'} backgroundColor={'#737373'} />
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <NavigationContainer>
           <RootNavigation />
         </NavigationContainer>
@@ -33,5 +29,4 @@ function App(): JSX.Element {
   );
 }
 
-registerRootComponent(App);
 export default App;
